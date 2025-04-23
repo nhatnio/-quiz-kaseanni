@@ -1,4 +1,4 @@
-# quiz_kaseanni.py – Quiz mit Vor- und Zurücknavigation und Antwortspeicherung
+# quiz_kaseanni.py – Quiz mit Vor- und Zurücknavigation und Antwortspeicherung (Multi-Select korrigiert)
 import streamlit as st
 st.set_page_config(page_title="🧀 Quiz: Kaseanni – Käsekunde", layout="wide")
 
@@ -40,22 +40,19 @@ if df is not None:
 
     key = f"q_{q_index}"
 
-    if qtype == "Checkbox":
-        if key not in st.session_state:
-            st.session_state[key] = []
-        user_input = st.multiselect("Wählen Sie alle richtigen Antworten:", options, default=st.session_state[key], key=key)
+    user_input = None
+    if qtype == "Checkbox" or qtype == "MCQ-Multi":  # Unterstützung für Multi-Choice-Mehrfachantwort
+        user_input = st.multiselect("Wählen Sie eine oder mehrere Antworten:", options, default=st.session_state.get(key, []))
+        st.session_state[key] = user_input
     elif qtype == "MCQ":
-        if key not in st.session_state:
-            st.session_state[key] = options[0]
-        user_input = st.radio("Wählen Sie eine Antwort:", options, index=options.index(st.session_state[key]), key=key)
+        user_input = st.radio("Wählen Sie eine Antwort:", options, index=options.index(st.session_state.get(key, options[0])), key=key)
+        st.session_state[key] = user_input
     elif qtype == "Matching":
-        if key not in st.session_state:
-            st.session_state[key] = ""
-        user_input = st.text_input("Ihre Zuordnung:", value=st.session_state[key], key=key)
+        user_input = st.text_input("Ihre Zuordnung:", value=st.session_state.get(key, ""), key=key)
+        st.session_state[key] = user_input
     elif qtype == "Sequence":
-        if key not in st.session_state:
-            st.session_state[key] = ""
-        user_input = st.text_input("Reihenfolge:", value=st.session_state[key], key=key)
+        user_input = st.text_input("Reihenfolge:", value=st.session_state.get(key, ""), key=key)
+        st.session_state[key] = user_input
     else:
         st.warning("❗ Unbekannter Fragetyp")
 
@@ -91,3 +88,4 @@ if df is not None:
         st.stop()
 else:
     st.stop()
+s
