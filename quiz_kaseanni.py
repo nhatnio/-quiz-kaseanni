@@ -1,5 +1,7 @@
 # quiz_kaseanni.py – Streamlit Quiz App für Käsekunde "Kaseanni"
 import streamlit as st
+st.set_page_config(page_title="🧀 Quiz: Kaseanni – Käsekunde", layout="wide")
+
 import pandas as pd
 
 # Excel-Datei laden mit Fehlerbehandlung
@@ -14,7 +16,6 @@ def load_data():
 # Daten laden
 df = load_data()
 
-st.set_page_config(page_title="🧀 Quiz: Kaseanni – Käsekunde", layout="wide")
 st.title("🧀 Quiz: Kaseanni – Fachwissen zu Käse und Wein")
 
 if df is not None:
