@@ -1,4 +1,4 @@
-# quiz_kaseanni.py – Version mit einer Frage pro Seite (mit Antwortspeicherung)
+# quiz_kaseanni.py – Quiz mit Vor- und Zurücknavigation und Antwortspeicherung
 import streamlit as st
 st.set_page_config(page_title="🧀 Quiz: Kaseanni – Käsekunde", layout="wide")
 
@@ -19,6 +19,8 @@ if 'user_answers' not in st.session_state:
     st.session_state.user_answers = {}
 if 'score' not in st.session_state:
     st.session_state.score = 0
+if 'submitted' not in st.session_state:
+    st.session_state.submitted = False
 
 # Daten laden
 df = load_data()
@@ -37,27 +39,44 @@ if df is not None:
     options = [row[f'Option {i}'] for i in range(1, 7) if pd.notna(row.get(f'Option {i}'))]
 
     key = f"q_{q_index}"
-    default_answer = st.session_state.user_answers.get(key, []) if qtype == "Checkbox" else st.session_state.user_answers.get(key, "")
 
-    user_input = None
-    if qtype == "MCQ":
-        user_input = st.radio("Wählen Sie eine Antwort:", options, index=options.index(default_answer) if default_answer in options else 0, key=key)
-    elif qtype == "Checkbox":
-        user_input = st.multiselect("Wählen Sie alle richtigen Antworten:", options, default=default_answer, key=key)
+    if qtype == "Checkbox":
+        if key not in st.session_state:
+            st.session_state[key] = []
+        user_input = st.multiselect("Wählen Sie alle richtigen Antworten:", options, default=st.session_state[key])
+        st.session_state[key] = user_input
+    elif qtype == "MCQ":
+        if key not in st.session_state:
+            st.session_state[key] = options[0]
+        user_input = st.radio("Wählen Sie eine Antwort:", options, index=options.index(st.session_state[key]), key=key)
+        st.session_state[key] = user_input
     elif qtype == "Matching":
-        st.info("Bitte geben Sie die passende Zuordnung ein (z. B.: A → 1, B → 2…)")
-        user_input = st.text_input("Ihre Zuordnung:", value=default_answer, key=key)
+        if key not in st.session_state:
+            st.session_state[key] = ""
+        user_input = st.text_input("Ihre Zuordnung:", value=st.session_state[key], key=key)
+        st.session_state[key] = user_input
     elif qtype == "Sequence":
-        st.info("Bitte geben Sie die richtige Reihenfolge ein, z. B.: 1–2–3–4")
-        user_input = st.text_input("Reihenfolge:", value=default_answer, key=key)
+        if key not in st.session_state:
+            st.session_state[key] = ""
+        user_input = st.text_input("Reihenfolge:", value=st.session_state[key], key=key)
+        st.session_state[key] = user_input
     else:
         st.warning("❗ Unbekannter Fragetyp")
+        user_input = ""
 
-    if st.button("👉 Weiter"):
-        st.session_state.user_answers[key] = user_input
-        st.session_state.current_question += 1
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("⬅️ Zurück") and st.session_state.current_question > 0:
+            st.session_state.current_question -= 1
+    with col2:
+        if st.button("➡️ Weiter") and st.session_state.current_question < total_questions - 1:
+            st.session_state.current_question += 1
 
-    if st.session_state.current_question >= total_questions:
+    st.markdown("---")
+    if st.button("✅ Quiz abgeben"):
+        st.session_state.submitted = True
+
+    if st.session_state.submitted:
         st.markdown("## ✅ Auswertung")
         score = 0
         for i in range(total_questions):
