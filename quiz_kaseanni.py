@@ -43,26 +43,21 @@ if df is not None:
     if qtype == "Checkbox":
         if key not in st.session_state:
             st.session_state[key] = []
-        user_input = st.multiselect("Wählen Sie alle richtigen Antworten:", options, default=st.session_state[key])
-        st.session_state[key] = user_input
+        user_input = st.multiselect("Wählen Sie alle richtigen Antworten:", options, default=st.session_state[key], key=key)
     elif qtype == "MCQ":
         if key not in st.session_state:
             st.session_state[key] = options[0]
         user_input = st.radio("Wählen Sie eine Antwort:", options, index=options.index(st.session_state[key]), key=key)
-        st.session_state[key] = user_input
     elif qtype == "Matching":
         if key not in st.session_state:
             st.session_state[key] = ""
         user_input = st.text_input("Ihre Zuordnung:", value=st.session_state[key], key=key)
-        st.session_state[key] = user_input
     elif qtype == "Sequence":
         if key not in st.session_state:
             st.session_state[key] = ""
         user_input = st.text_input("Reihenfolge:", value=st.session_state[key], key=key)
-        st.session_state[key] = user_input
     else:
         st.warning("❗ Unbekannter Fragetyp")
-        user_input = ""
 
     col1, col2 = st.columns([1, 1])
     with col1:
@@ -82,7 +77,7 @@ if df is not None:
         for i in range(total_questions):
             row = df.iloc[i]
             correct = row['Correct Answer(s)']
-            given = st.session_state.user_answers.get(f"q_{i}", "")
+            given = st.session_state.get(f"q_{i}", "")
             correct_str = str(correct).strip().lower()
             given_str = ', '.join(sorted(given)).lower() if isinstance(given, list) else str(given).strip().lower()
             st.markdown(f"### Frage {i + 1}:")
