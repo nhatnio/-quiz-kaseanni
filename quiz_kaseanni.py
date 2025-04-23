@@ -1,4 +1,4 @@
-# quiz_kaseanni.py – Quiz mit Multi-Choice Fix (SessionState-Fehler korrigiert)
+# quiz_kaseanni.py – Optimiert: Navigation sofort & Multi-Choice durch Textantwort ersetzt
 import streamlit as st
 st.set_page_config(page_title="🧀 Quiz: Kaseanni – Käsekunde", layout="wide")
 
@@ -21,6 +21,8 @@ if 'score' not in st.session_state:
     st.session_state.score = 0
 if 'submitted' not in st.session_state:
     st.session_state.submitted = False
+if 'navigate' not in st.session_state:
+    st.session_state.navigate = None
 
 # Daten laden
 df = load_data()
@@ -39,38 +41,39 @@ if df is not None:
     options = [row[f'Option {i}'] for i in range(1, 7) if pd.notna(row.get(f'Option {i}'))]
 
     key = f"q_{q_index}"
+    default_val = st.session_state.user_answers.get(key, "")
 
-    if qtype == "Checkbox" or qtype == "MCQ-Multi":
-        # Nur anzeigen, nicht manuell schreiben in session_state
-        default_val = st.session_state.user_answers.get(key, [])
-        user_input = st.multiselect("Wählen Sie eine oder mehrere Antworten:", options, default=default_val, key=key)
+    if qtype in ["Checkbox", "MCQ-Multi"]:
+        user_input = st.text_input("Geben Sie Ihre gewählten Buchstaben durch Kommas getrennt ein (z. B.: A, C, D):", value=default_val, key=key)
     elif qtype == "MCQ":
-        default_val = st.session_state.user_answers.get(key, options[0])
-        user_input = st.radio("Wählen Sie eine Antwort:", options, index=options.index(default_val), key=key)
+        user_input = st.radio("Wählen Sie eine Antwort:", options, index=options.index(default_val) if default_val in options else 0, key=key)
     elif qtype == "Matching":
-        default_val = st.session_state.user_answers.get(key, "")
         user_input = st.text_input("Ihre Zuordnung:", value=default_val, key=key)
     elif qtype == "Sequence":
-        default_val = st.session_state.user_answers.get(key, "")
         user_input = st.text_input("Reihenfolge:", value=default_val, key=key)
     else:
         st.warning("❗ Unbekannter Fragetyp")
-        user_input = None
+        user_input = ""
 
-    # Speichere nur beim Weiter/Zürück
+    st.session_state.user_answers[key] = user_input
+
     col1, col2 = st.columns([1, 1])
     with col1:
         if st.button("⬅️ Zurück") and st.session_state.current_question > 0:
-            st.session_state.user_answers[key] = user_input
-            st.session_state.current_question -= 1
+            st.session_state.navigate = "back"
     with col2:
         if st.button("➡️ Weiter") and st.session_state.current_question < total_questions - 1:
-            st.session_state.user_answers[key] = user_input
-            st.session_state.current_question += 1
+            st.session_state.navigate = "next"
+
+    if st.session_state.navigate == "back":
+        st.session_state.current_question -= 1
+        st.experimental_rerun()
+    elif st.session_state.navigate == "next":
+        st.session_state.current_question += 1
+        st.experimental_rerun()
 
     st.markdown("---")
     if st.button("✅ Quiz abgeben"):
-        st.session_state.user_answers[key] = user_input
         st.session_state.submitted = True
 
     if st.session_state.submitted:
@@ -81,7 +84,7 @@ if df is not None:
             correct = row['Correct Answer(s)']
             given = st.session_state.user_answers.get(f"q_{i}", "")
             correct_str = str(correct).strip().lower()
-            given_str = ', '.join(sorted(given)).lower() if isinstance(given, list) else str(given).strip().lower()
+            given_str = ', '.join(sorted(g.strip() for g in given.split(","))).lower() if ("," in given) else str(given).strip().lower()
             st.markdown(f"### Frage {i + 1}:")
             if correct_str == given_str:
                 st.success("✔️ Richtig")
